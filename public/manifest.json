@@ -1,0 +1,16 @@
+{
+  "name": "ระบบสต๊อกครัวโรงพยาบาล Touch-once",
+  "short_name": "KitchenMed",
+  "description": "ระบบบันทึกรับ-เบิกวัตถุดิบครัวโรงพยาบาลแบบไม่ต้องพิมพ์ HACCP & FEFO",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f766e",
+  "theme_color": "#0f766e",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

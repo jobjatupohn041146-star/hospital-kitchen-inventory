@@ -1,0 +1,124 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Item {
+  id                 String             @id @default(cuid())
+  code               String             @unique
+  name               String
+  category           String
+  baseUnit           String             // เช่น กก., กรัม, ฟอง, ลิตร
+  packUnit           String             // เช่น ลัง 10 กก., แผง 30 ฟอง
+  packSize           Float              @default(1.0)
+  safetyStock        Float              @default(0.0)
+  storageType        String             // "แช่เย็น 0-4°C", "แช่แข็ง -18°C", "อุณหภูมิห้อง"
+  defaultTempMin     Float?
+  defaultTempMax     Float?
+  defaultSupplierId  String?
+  supplier           Supplier?          @relation(fields: [defaultSupplierId], references: [id])
+  lots               Lot[]
+  transactions       StockTransaction[]
+  recipeItems        RecipeItem[]
+  demandHistory      DailyDemandHistory[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  contact   String?
+  phone     String?
+  address   String?
+  items     Item[]
+  lots      Lot[]
+  orders    PurchaseOrder[]
+  createdAt DateTime @default(now())
+}
+
+model Lot {
+  id             String             @id @default(cuid())
+  lotNumber      String             @unique
+  itemId         String
+  item           Item               @relation(fields: [itemId], references: [id])
+  supplierId     String
+  supplier       Supplier           @relation(fields: [supplierId], references: [id])
+  receivedDate   DateTime           @default(now())
+  expiryDate     DateTime
+  initialQty     Float
+  remainingQty   Float
+  unitCost       Float              // ราคาต่อ baseUnit
+  receivedTemp   Float?
+  tempStatus     String             @default("PASS") // PASS, WARN, FAIL
+  invoiceNumber  String?
+  receiverName   String
+  notes          String?
+  qrCode         String
+  isRecalled     Boolean            @default(false)
+  recallReason   String?
+  recalledAt     DateTime?
+  transactions   StockTransaction[]
+  createdAt      DateTime           @default(now())
+}
+
+model StockTransaction {
+  id           String   @id @default(cuid())
+  type         String   // RECEIVE, DISPENSE, SPOIL, REVERT
+  itemId       String
+  item         Item     @relation(fields: [itemId], references: [id])
+  lotId        String?
+  lot          Lot?     @relation(fields: [lotId], references: [id])
+  qty          Float    // ใน baseUnit
+  unitCost     Float
+  totalCost    Float
+  menuName     String?  // เช่น แกงจืดเต้าหู้หมูสับ, อกไก่นึ่งฟักทอง
+  operatorName String
+  operatorRole String   // เจ้าหน้าที่รับของ, พ่อครัว, นักโภชนาการ, หัวหน้าจัดซื้อ
+  method       String   // AI_INVOICE, QR_SCAN, VOICE, MANUAL
+  notes        String?
+  createdAt    DateTime @default(now())
+}
+
+model DietType {
+  id                  String       @id @default(cuid())
+  code                String       @unique
+  name                String
+  description         String?
+  currentPatientCount Int          @default(50)
+  recipeItems         RecipeItem[]
+}
+
+model RecipeItem {
+  id             String   @id @default(cuid())
+  dietTypeId     String
+  dietType       DietType @relation(fields: [dietTypeId], references: [id])
+  itemId         String
+  item           Item     @relation(fields: [itemId], references: [id])
+  qtyPerPatient  Float    // จำนวนต่อผู้ป่วย 1 คนต่อวัน (baseUnit)
+}
+
+model DailyDemandHistory {
+  id           String   @id @default(cuid())
+  date         DateTime
+  itemId       String
+  item         Item     @relation(fields: [itemId], references: [id])
+  consumedQty  Float
+}
+
+model PurchaseOrder {
+  id          String   @id @default(cuid())
+  poNumber    String   @unique
+  orderDate   DateTime @default(now())
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+  totalAmount Float
+  status      String   @default("DRAFT") // DRAFT, APPROVED, SENT
+  itemsJson   String   // รายละเอียดรายการที่สั่ง
+  createdBy   String
+  createdAt   DateTime @default(now())
+}
