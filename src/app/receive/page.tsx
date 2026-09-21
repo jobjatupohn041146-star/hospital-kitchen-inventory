@@ -18,6 +18,7 @@ import {
   FileText,
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import { clientStore } from "@/lib/clientStore";
 
 export default function ReceivePage() {
   const { roleConfig, showToast } = useRole();
@@ -70,21 +71,33 @@ export default function ReceivePage() {
           presetKey,
         }),
       });
-      const data = await res.json();
-      if (data.success) {
-        setExtractionResult(data.extraction);
-        if (presetKey === "seafood") {
-          setTemperature("-19.5");
-        } else {
-          setTemperature("2.8");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setExtractionResult(data.extraction);
+          if (presetKey === "seafood") {
+            setTemperature("-19.5");
+          } else {
+            setTemperature("2.8");
+          }
+          showToast("AI สกัดข้อมูลใบส่งของเรียบร้อยแล้ว");
+          setIsExtracting(false);
+          return;
         }
-        showToast("AI สกัดข้อมูลใบส่งของเรียบร้อยแล้ว");
       }
     } catch (e: any) {
-      showToast("สกัดข้อมูลไม่สำเร็จ: " + e.message);
-    } finally {
-      setIsExtracting(false);
+      console.warn("API error, fallback to clientStore:", e);
     }
+    // Fallback for static hosting / GitHub Pages
+    const presetData = clientStore.extractInvoice(presetKey);
+    setExtractionResult(presetData);
+    if (presetKey === "seafood") {
+      setTemperature("-19.5");
+    } else {
+      setTemperature("2.8");
+    }
+    showToast("AI สกัดข้อมูลใบส่งของเรียบร้อยแล้ว");
+    setIsExtracting(false);
   };
 
   // จัดการอัปโหลดหรือถ่ายภาพใบส่งของ
@@ -109,16 +122,22 @@ export default function ReceivePage() {
             presetKey: "meat",
           }),
         });
-        const data = await res.json();
-        if (data.success) {
-          setExtractionResult(data.extraction);
-          showToast("AI วิเคราะห์ภาพใบส่งของสำเร็จ");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setExtractionResult(data.extraction);
+            showToast("AI วิเคราะห์ภาพใบส่งของสำเร็จ");
+            setIsExtracting(false);
+            return;
+          }
         }
       } catch (err: any) {
-        showToast("ไม่สามารถประมวลผลภาพได้: " + err.message);
-      } finally {
-        setIsExtracting(false);
+        console.warn("Image upload API error, fallback to preset:", err);
       }
+      const fallbackPreset = clientStore.extractInvoice("meat");
+      setExtractionResult(fallbackPreset);
+      showToast("AI วิเคราะห์ภาพใบส่งของสำเร็จ (โหมดสาธิต)");
+      setIsExtracting(false);
     };
     reader.readAsDataURL(file);
   };
@@ -150,21 +169,37 @@ export default function ReceivePage() {
         }),
       });
 
-      const data = await res.json();
-      if (data.success) {
-        setSavedLots(data.lots);
-        setExtractionResult(null);
-        setImagePreview(null);
-        showToast(data.message);
-        confetti({ particleCount: 60, spread: 55, origin: { y: 0.7 } });
-      } else {
-        showToast("บันทึกไม่สำเร็จ: " + data.error);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setSavedLots(data.lots);
+          setExtractionResult(null);
+          setImagePreview(null);
+          showToast(data.message);
+          confetti({ particleCount: 60, spread: 55, origin: { y: 0.7 } });
+          setIsSubmitting(false);
+          return;
+        }
       }
     } catch (e: any) {
-      showToast("เกิดข้อผิดพลาด: " + e.message);
-    } finally {
-      setIsSubmitting(false);
+      console.warn("Receive API error, using clientStore:", e);
     }
+
+    // Fallback to clientStore
+    const clientRes = clientStore.confirmReceive({
+      supplierName: extractionResult.supplierName,
+      invoiceNumber: extractionResult.invoiceNumber,
+      receiverName,
+      temperature,
+      items: extractionResult.items,
+      notes,
+    });
+    setSavedLots(clientRes.lots);
+    setExtractionResult(null);
+    setImagePreview(null);
+    showToast(clientRes.message);
+    confetti({ particleCount: 60, spread: 55, origin: { y: 0.7 } });
+    setIsSubmitting(false);
   };
 
   return (

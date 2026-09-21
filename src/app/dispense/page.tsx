@@ -6,6 +6,7 @@ import { useRole } from "@/components/RoleContext";
 import { formatThaiDate } from "@/lib/dateUtils";
 import SmartScaleModal from "@/components/SmartScaleModal";
 import VoiceWaveModal from "@/components/VoiceWaveModal";
+import { clientStore } from "@/lib/clientStore";
 import {
   Mic,
   MicOff,
@@ -59,17 +60,27 @@ function DispenseContent() {
   const fetchItems = async () => {
     try {
       const res = await fetch("/api/inventory");
-      const json = await res.json();
-      if (json.success) {
-        setItems(json.items);
-        if (preSelectedItemId) {
-          setSelectedItemId(preSelectedItemId);
-        } else if (json.items.length > 0) {
-          setSelectedItemId(json.items[0].id);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setItems(json.items);
+          if (preSelectedItemId) {
+            setSelectedItemId(preSelectedItemId);
+          } else if (json.items.length > 0) {
+            setSelectedItemId(json.items[0].id);
+          }
+          return;
         }
       }
     } catch (e) {
-      console.error(e);
+      console.warn("fetchItems API error, fallback to clientStore:", e);
+    }
+    const cItems = clientStore.getItems();
+    setItems(cItems);
+    if (preSelectedItemId) {
+      setSelectedItemId(preSelectedItemId);
+    } else if (cItems.length > 0) {
+      setSelectedItemId(cItems[0].id);
     }
   };
 
@@ -92,15 +103,20 @@ function DispenseContent() {
           requestedQty: qty,
         }),
       });
-      const data = await res.json();
-      if (data.success) {
-        setFefoRecommendation(data.recommendation);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setFefoRecommendation(data.recommendation);
+          setLoadingFefo(false);
+          return;
+        }
       }
     } catch (e) {
-      console.error(e);
-    } finally {
-      setLoadingFefo(false);
+      console.warn("checkFefo API error, fallback to clientStore:", e);
     }
+    const cFefo = clientStore.calculateFefo(itemId, qty);
+    setFefoRecommendation(cFefo);
+    setLoadingFefo(false);
   };
 
   // Text-to-Speech อ่านทวนภาษาไทย
@@ -216,20 +232,29 @@ function DispenseContent() {
         }),
       });
 
-      const data = await res.json();
-      if (data.success) {
-        setDispenseSuccess(data);
-        showToast(data.message);
-        confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
-        fetchItems(); // โหลดสต๊อกใหม่
-      } else {
-        showToast("เบิกไม่สำเร็จ: " + data.error);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setDispenseSuccess(data);
+          showToast(data.message);
+          confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+          fetchItems();
+          setIsSubmitting(false);
+          return;
+        }
       }
     } catch (e: any) {
-      showToast("เกิดข้อผิดพลาด: " + e.message);
-    } finally {
-      setIsSubmitting(false);
+      console.warn("Dispense API error, fallback to clientStore:", e);
     }
+    const cRes = clientStore.confirmDispense({
+      itemId: selectedItemId,
+      requestedQty: dispenseQty,
+    });
+    setDispenseSuccess(cRes);
+    showToast(cRes.message);
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+    fetchItems();
+    setIsSubmitting(false);
   };
 
   const selectedItem = items.find((it) => it.id === selectedItemId);

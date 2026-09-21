@@ -20,6 +20,8 @@ import {
   Zap,
 } from "lucide-react";
 
+import { clientStore } from "@/lib/clientStore";
+
 export default function DashboardPage() {
   const { roleConfig } = useRole();
   const [data, setData] = useState<any>(null);
@@ -33,15 +35,21 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       const res = await fetch("/api/inventory");
-      const json = await res.json();
-      if (json.success) {
-        setData(json);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setData(json);
+          setLoading(false);
+          return;
+        }
       }
     } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+      console.warn("API route not available, using client store:", e);
     }
+    // Fallback to clientStore for GitHub Pages / Static Hosting
+    const fallbackData = clientStore.getInventoryData();
+    setData(fallbackData);
+    setLoading(false);
   };
 
   if (loading || !data) {
