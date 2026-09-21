@@ -1,6 +1,9 @@
 # 🏥 ระบบสต๊อกครัวโรงพยาบาล "Touch-once" (Hospital Kitchen Inventory PWA)
 
 <p align="center">
+  <a href="https://jobjatupohn041146-star.github.io/hospital-kitchen-inventory/">
+    <img src="https://img.shields.io/badge/🌐_LIVE_DEMO-GitHub_Pages-success?style=for-the-badge&logo=githubpages" alt="Live Demo" />
+  </a>
   <img src="https://img.shields.io/badge/Framework-Next.js%2014-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/Language-TypeScript-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Styling-Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwindcss" alt="Tailwind CSS" />
@@ -9,6 +12,8 @@
   <img src="https://img.shields.io/badge/Audit-JCI%201--Min%20Recall-amber?style=for-the-badge" alt="JCI" />
   <img src="https://img.shields.io/badge/Privacy-PDPA%20Compliant-blue?style=for-the-badge" alt="PDPA" />
 </p>
+
+> 🔗 **Live Web Application (GitHub Pages):** [https://jobjatupohn041146-star.github.io/hospital-kitchen-inventory/](https://jobjatupohn041146-star.github.io/hospital-kitchen-inventory/)
 
 ---
 

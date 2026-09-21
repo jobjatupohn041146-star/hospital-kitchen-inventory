@@ -37,3 +37,6 @@ next-env.d.ts
 # prisma sqlite local database
 dev.db
 dev.db-journal
+
+# static export
+/out
